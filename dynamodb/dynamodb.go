@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -40,6 +41,7 @@ func NewDynamoDB(table string) (*DynamoDB, error) {
 		cfg, err = config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion(REGION), // 必須
 			config.WithBaseEndpoint(endpoint),
+			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "dummy")),
 		)
 		if err != nil {
 			return nil, err
