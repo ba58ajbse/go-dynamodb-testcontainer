@@ -2,25 +2,37 @@ package dynamodb_test
 
 import (
 	"context"
+	"os"
 	"reflect"
 	"testing"
 	"time"
 
 	mydynamo "godynamodb/dynamodb"
+	"godynamodb/testutil"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
 
+var endpoint string
+
+func TestMain(m *testing.M) {
+	localStackEndpoint, cleanup := testutil.SetupLocalStack(context.TODO())
+	endpoint = localStackEndpoint
+
+	code := m.Run()
+
+	cleanup()
+
+	os.Exit(code)
+}
+
 func TestNewDynamoDB(t *testing.T) {
-	ctx := context.Background()
-
-	endpoint, cleanup := SetupLocalStack(ctx, t)
-	defer cleanup()
-
+	t.Parallel()
 	type args struct {
 		endpoint string
 		table    string
@@ -60,32 +72,11 @@ func TestNewDynamoDB(t *testing.T) {
 	}
 }
 
-func TestNewSession(t *testing.T) {
-	type args struct {
-		ID        string
-		sessionID string
-	}
-	tests := []struct {
-		name string
-		args args
-		want mydynamo.Session
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := mydynamo.NewSession(tt.args.ID, tt.args.sessionID); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewSession() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestDynamoDB_SaveSession(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
-	dynamo, cleanup := setupSessionTest(ctx, t, "Session")
-	defer cleanup()
+	dynamo := setupDynamoTest(ctx, t, "Session_SaveSession")
 
 	cases := map[string]struct {
 		args    mydynamo.Session
@@ -132,10 +123,8 @@ func TestDynamoDB_SaveSession(t *testing.T) {
 }
 
 func TestDynamoDB_GetSession(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-
-	dynamo, cleanup := setupSessionTest(ctx, t, "Session")
-	defer cleanup()
 
 	session := mydynamo.Session{
 		ID:        "1234",
@@ -144,9 +133,9 @@ func TestDynamoDB_GetSession(t *testing.T) {
 		Expire:    "2025-02-01 13:34:56",
 		TTL:       1738384496,
 	}
-	if err := dynamo.SaveSession(session); err != nil {
-		t.Logf("Failed to save default session: %v\n", err)
-	}
+
+	dynamo := setupDynamoTest(ctx, t, "Session_GetSession")
+	saveTestItem(t, dynamo, session)
 
 	type args struct {
 		ID        string
@@ -212,9 +201,6 @@ func TestDynamoDB_GetSession(t *testing.T) {
 func TestDynamoDB_UpdateSession(t *testing.T) {
 	ctx := context.Background()
 
-	dynamo, cleanup := setupSessionTest(ctx, t, "Session")
-	defer cleanup()
-
 	session := mydynamo.Session{
 		ID:        "1234",
 		SessionID: "abcde",
@@ -222,9 +208,9 @@ func TestDynamoDB_UpdateSession(t *testing.T) {
 		Expire:    "2025-02-01 13:34:56",
 		TTL:       1738384496,
 	}
-	if err := dynamo.SaveSession(session); err != nil {
-		t.Logf("Failed to save default session: %v\n", err)
-	}
+
+	dynamo := setupDynamoTest(ctx, t, "Session_UpdateSession")
+	saveTestItem(t, dynamo, session)
 
 	now := time.Date(2025, 2, 1, 13, 0, 0, 0, time.Local)
 	expectedExpire := now.Add(1 * time.Hour)
@@ -310,11 +296,8 @@ func SetupLocalStack(ctx context.Context, t *testing.T) (string, func()) {
 	return awsEndpoint, cleanup
 }
 
-func setupSessionTest(ctx context.Context, t *testing.T, tableName string) (*mydynamo.DynamoDB, func()) {
+func setupDynamoTest(ctx context.Context, t *testing.T, tableName string) *mydynamo.DynamoDB {
 	t.Helper()
-
-	// testcontainersのLocalStack作成
-	endpoint, cleanup := SetupLocalStack(ctx, t)
 
 	// DynamoDBクライアントの初期化
 	dynamo, err := mydynamo.NewDynamoDB(endpoint, tableName)
@@ -352,5 +335,21 @@ func setupSessionTest(ctx context.Context, t *testing.T, tableName string) (*myd
 		t.Logf("Failed to create test table: %v\n", err)
 	}
 
-	return dynamo, cleanup
+	return dynamo
+}
+
+func saveTestItem(t *testing.T, dynamo *mydynamo.DynamoDB, item any) {
+	value, err := attributevalue.MarshalMap(item)
+	if err != nil {
+		t.Logf("marshal value error: %v", err)
+	}
+
+	input := &dynamodb.PutItemInput{
+		TableName: &dynamo.Table,
+		Item:      value,
+	}
+
+	if _, err := dynamo.Client.PutItem(context.TODO(), input); err != nil {
+		t.Logf("put item error: %v", err)
+	}
 }
