@@ -44,6 +44,6 @@ jobs:
 
       - name: 🏃 Go テストを実行（並列）
         env:
-          # TESTCONTAINERS_RYUK_DISABLED: "true"
+          TESTCONTAINERS_RYUK_DISABLED: "true"
           DOCKER_HOST: "unix:///var/run/docker.sock"
         run: go test -v ./...
