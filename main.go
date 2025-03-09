@@ -4,7 +4,9 @@ import (
 	"fmt"
 	mydynamo "godynamodb/dynamodb"
 	"log"
+	"math/rand"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -20,7 +22,9 @@ func main() {
 		log.Fatalf("Failed to init DynamoDB client: %v", err)
 	}
 
-	session := mydynamo.NewSession("1234", "abcde")
+	sessionID := strconv.Itoa(rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+	// sessionID := "abcde"
+	session := mydynamo.NewSession("1234", sessionID)
 
 	// create
 	if err := client.SaveSession(session); err != nil {
@@ -30,7 +34,7 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	// get
-	newSession, err := client.GetSession("1234", "abcde", time.Now().Local().Format(time.DateTime))
+	newSession, err := client.GetSession("1234", sessionID, time.Now().Local().Format(time.DateTime))
 	if err != nil {
 		log.Fatalf("Failed to get item: %v", err)
 	}
@@ -39,7 +43,7 @@ func main() {
 
 	nowTime := time.Now().Local()
 	// update
-	ret, err := client.UpdateSession("1234", "abcde", nowTime)
+	ret, err := client.UpdateSession("1234", sessionID, nowTime)
 	if err != nil {
 		log.Fatalf("Failed to update item: %v", err)
 	}
