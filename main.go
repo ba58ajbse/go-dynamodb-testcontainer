@@ -11,7 +11,7 @@ import (
 )
 
 /*
-DYNAMODB_ENDPOINT=http://localhost:4566 DYNAMODB_TABLE=Session go run .
+LOCALSTACK_ENDPOINT=http://localhost:4566 DYNAMODB_TABLE=Session go run .
 */
 func main() {
 	table := os.Getenv("DYNAMODB_TABLE")
@@ -24,6 +24,7 @@ func main() {
 
 	sessionID := strconv.Itoa(rand.New(rand.NewSource(time.Now().UnixNano())).Int())
 	// sessionID := "abcde"
+	fmt.Println(sessionID)
 	session := mydynamo.NewSession("1234", sessionID)
 
 	// create
