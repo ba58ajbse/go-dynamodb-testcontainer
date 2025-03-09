@@ -33,27 +33,31 @@ type Session struct {
 	TTL       int    `dynamodbav:"ttl"`
 }
 
-func NewDynamoDB(table string) (*DynamoDB, error) {
-	var cfg aws.Config
-	var err error
+func AwsLoadConfig() (*aws.Config, error) {
+	var opts []func(*config.LoadOptions) error
+
+	opts = append(opts, config.WithRegion(REGION))
+
 	if endpoint := os.Getenv("LOCALSTACK_ENDPOINT"); endpoint != "" {
 		// AWS SDK v2 の設定を読み込む
-		cfg, err = config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion(REGION), // 必須
+		opts = append(opts,
 			config.WithBaseEndpoint(endpoint),
 			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "dummy")),
 		)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// AWS SDK v2 の設定を読み込む
-		cfg, err = config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion(REGION), // 必須
-		)
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.Background(), opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+func NewDynamoDB(table string) (*DynamoDB, error) {
+	cfg, err := AwsLoadConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	if table == "" {
@@ -62,7 +66,7 @@ func NewDynamoDB(table string) (*DynamoDB, error) {
 
 	// DynamoDB クライアントを作成
 	return &DynamoDB{
-		Client: dynamodb.NewFromConfig(cfg),
+		Client: dynamodb.NewFromConfig(*cfg),
 		Table:  table,
 	}, nil
 }
