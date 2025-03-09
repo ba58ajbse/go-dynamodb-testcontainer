@@ -12,11 +12,10 @@ import (
 DYNAMODB_ENDPOINT=http://localhost:4566 DYNAMODB_TABLE=Session go run .
 */
 func main() {
-	endpoint := os.Getenv("DYNAMODB_ENDPOINT")
 	table := os.Getenv("DYNAMODB_TABLE")
 
 	// DynamoDB クライアントを作成
-	client, err := mydynamo.NewDynamoDB(endpoint, table)
+	client, err := mydynamo.NewDynamoDB(table)
 	if err != nil {
 		log.Fatalf("Failed to init DynamoDB client: %v", err)
 	}

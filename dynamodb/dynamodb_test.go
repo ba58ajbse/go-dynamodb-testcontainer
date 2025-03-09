@@ -18,11 +18,9 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
 
-var endpoint string
-
 func TestMain(m *testing.M) {
 	localStackEndpoint, cleanup := testutil.SetupLocalStack(context.TODO())
-	endpoint = localStackEndpoint
+	os.Setenv("LOCALSTACK_ENDPOINT", localStackEndpoint)
 
 	code := m.Run()
 
@@ -34,8 +32,7 @@ func TestMain(m *testing.M) {
 func TestNewDynamoDB(t *testing.T) {
 	t.Parallel()
 	type args struct {
-		endpoint string
-		table    string
+		table string
 	}
 	cases := map[string]struct {
 		args    args
@@ -44,21 +41,19 @@ func TestNewDynamoDB(t *testing.T) {
 		// TODO: Add test cases.
 		"case 1": {
 			args: args{
-				endpoint: endpoint,
-				table:    "Session",
+				table: "Session",
 			},
 		},
 		"case 2": {
 			args: args{
-				endpoint: endpoint,
-				table:    "",
+				table: "",
 			},
 			wantErr: true,
 		},
 	}
 	for testName, tt := range cases {
 		t.Run(testName, func(t *testing.T) {
-			got, err := mydynamo.NewDynamoDB(tt.args.endpoint, tt.args.table)
+			got, err := mydynamo.NewDynamoDB(tt.args.table)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewDynamoDB() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -124,7 +119,6 @@ func TestDynamoDB_SaveSession(t *testing.T) {
 
 func TestDynamoDB_GetSession(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	session := mydynamo.Session{
 		ID:        "1234",
@@ -134,7 +128,7 @@ func TestDynamoDB_GetSession(t *testing.T) {
 		TTL:       1738384496,
 	}
 
-	dynamo := setupDynamoTest(ctx, t, "Session_GetSession")
+	dynamo := setupDynamoTest(context.TODO(), t, "Session_GetSession")
 	saveTestItem(t, dynamo, session)
 
 	type args struct {
@@ -199,8 +193,6 @@ func TestDynamoDB_GetSession(t *testing.T) {
 }
 
 func TestDynamoDB_UpdateSession(t *testing.T) {
-	ctx := context.Background()
-
 	session := mydynamo.Session{
 		ID:        "1234",
 		SessionID: "abcde",
@@ -209,7 +201,7 @@ func TestDynamoDB_UpdateSession(t *testing.T) {
 		TTL:       1738384496,
 	}
 
-	dynamo := setupDynamoTest(ctx, t, "Session_UpdateSession")
+	dynamo := setupDynamoTest(context.TODO(), t, "Session_UpdateSession")
 	saveTestItem(t, dynamo, session)
 
 	now := time.Date(2025, 2, 1, 13, 0, 0, 0, time.Local)
@@ -300,7 +292,7 @@ func setupDynamoTest(ctx context.Context, t *testing.T, tableName string) *mydyn
 	t.Helper()
 
 	// DynamoDBクライアントの初期化
-	dynamo, err := mydynamo.NewDynamoDB(endpoint, tableName)
+	dynamo, err := mydynamo.NewDynamoDB(tableName)
 	if err != nil {
 		t.Logf("Failed to init DynamoDB client: %v\n", err)
 	}

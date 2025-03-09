@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -31,14 +32,26 @@ type Session struct {
 	TTL       int    `dynamodbav:"ttl"`
 }
 
-func NewDynamoDB(endpoint, table string) (*DynamoDB, error) {
-	// AWS SDK v2 の設定を読み込む
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(REGION), // 必須
-		config.WithBaseEndpoint(endpoint),
-	)
-	if err != nil {
-		return nil, err
+func NewDynamoDB(table string) (*DynamoDB, error) {
+	var cfg aws.Config
+	var err error
+	if endpoint := os.Getenv("LOCALSTACK_ENDPOINT"); endpoint != "" {
+		// AWS SDK v2 の設定を読み込む
+		cfg, err = config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion(REGION), // 必須
+			config.WithBaseEndpoint(endpoint),
+		)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// AWS SDK v2 の設定を読み込む
+		cfg, err = config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion(REGION), // 必須
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if table == "" {
