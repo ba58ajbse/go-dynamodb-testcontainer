@@ -1,7 +1,7 @@
 #!/bin/bash
 # デフォルトリージョンを東京（ap-northeast-1）に設定
 export AWS_DEFAULT_REGION=ap-northeast-1
- 
+
 awslocal dynamodb create-table \
     --table-name Session \
     --attribute-definitions \
