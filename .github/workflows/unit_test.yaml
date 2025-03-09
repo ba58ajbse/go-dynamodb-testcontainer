@@ -1,0 +1,49 @@
+name: Go Test with Testcontainers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:20.10.24-dind
+        options: --privileged
+
+    steps:
+      - name: 🚀 リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Go をセットアップ
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23 # 使用するGoのバージョンを指定
+
+      - name: 🛠️ 依存関係をキャッシュ
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: 📦 依存関係をインストール
+        run: go mod tidy
+
+      - name: 🛠️ Testcontainers 用の Docker 設定
+        run: |
+          sudo service docker start
+          docker info
+        shell: bash
+
+      - name: 🏃 Go テストを実行（並列）
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          DOCKER_HOST: "unix:///var/run/docker.sock"
+        run: go test -v ./...
