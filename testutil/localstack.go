@@ -9,7 +9,7 @@ import (
 
 func SetupLocalStack(ctx context.Context) (string, func()) {
 	// testcontainers で LocalStack を起動
-	c, err := localstack.Run(ctx, "localstack/localstack:latest")
+	c, err := localstack.Run(ctx, "localstack/localstack:4.13.1")
 	if err != nil {
 		log.Fatalf("Failed to start LocalStack container: %v", err)
 	}

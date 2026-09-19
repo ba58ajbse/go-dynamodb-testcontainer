@@ -209,3 +209,24 @@ func (d *DynamoDB) UpdateSession(ID, sessionID string, now time.Time) (*Session,
 
 	return &updatedSession, nil
 }
+
+func (d *DynamoDB) DeleteSession(ID, sessionID string) error {
+	deleteItemInput := dynamodb.DeleteItemInput{
+		Key: map[string]types.AttributeValue{
+			"id":        &types.AttributeValueMemberS{Value: ID},
+			"sessionId": &types.AttributeValueMemberS{Value: sessionID},
+		},
+		TableName:    &d.Table,
+		ReturnValues: types.ReturnValueAllOld,
+	}
+
+	res, err := d.Client.DeleteItem(context.TODO(), &deleteItemInput)
+	if err != nil {
+		return err
+	}
+
+	if res.Attributes == nil {
+		fmt.Println("削除対象となるレコードが存在しませんでした")
+	}
+	return nil
+}

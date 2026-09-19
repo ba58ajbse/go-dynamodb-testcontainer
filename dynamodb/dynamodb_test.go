@@ -2,13 +2,12 @@ package dynamodb_test
 
 import (
 	"context"
+	mydynamo "godynamodb/dynamodb"
+	"godynamodb/testutil"
 	"os"
 	"reflect"
 	"testing"
 	"time"
-
-	mydynamo "godynamodb/dynamodb"
-	"godynamodb/testutil"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -260,6 +259,57 @@ func TestDynamoDB_UpdateSession(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDynamoDB_DeleteSession(t *testing.T) {
+	session := mydynamo.Session{
+		ID:        "1234",
+		SessionID: "abcde",
+		CreatedAt: "2025-02-01 12:34:56",
+		Expire:    "2025-02-01 13:34:56",
+		TTL:       1738384496,
+	}
+
+	dynamo := setupDynamoTest(context.TODO(), t, "Session_DeleteSession")
+	saveTestItem(t, dynamo, session)
+
+	type args struct {
+		ID        string
+		sessionID string
+	}
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"case_1": {
+			args: args{
+				ID:        "1234",
+				sessionID: "abcde",
+			},
+			wantErr: false,
+		},
+		"case_2": {
+			args: args{
+				ID:        "",
+				sessionID: "abcde",
+			},
+			wantErr: true,
+		},
+		"case_3": {
+			args: args{
+				ID:        "1234",
+				sessionID: "",
+			},
+			wantErr: true,
+		},
+	}
+	for testName, tt := range tests {
+		t.Run(testName, func(t *testing.T) {
+			if err := dynamo.DeleteSession(tt.args.ID, tt.args.sessionID); (err != nil) != tt.wantErr {
+				t.Errorf("DynamoDB.DeleteSession() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
