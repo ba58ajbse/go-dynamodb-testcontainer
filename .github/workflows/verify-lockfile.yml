@@ -1,0 +1,29 @@
+# Fails when .github/workflows/actions.lock is out of sync with the
+# workflows or a locked pin no longer verifies upstream.
+# 公式サンプル (github/gh-actions-lock) をベースに、拡張機能のバージョンを
+# ローカルと揃え、上流のタグ付け替えを検知するための定期実行を追加している。
+
+name: verify-lockfile
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 * * 1" # 毎週月曜 09:00 JST
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - run: gh extension install github/gh-actions-lock --pin v0.4.0
+      - run: gh actions-lock --verify
