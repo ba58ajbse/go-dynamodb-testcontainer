@@ -11,39 +11,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      docker:
-        image: docker:20.10.24-dind
-        options: --privileged
 
     steps:
       - name: 🚀 リポジトリをチェックアウト
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: 🛠️ Go をセットアップ
-        uses: actions/setup-go@v5
+      - name: 🛠️ Go をセットアップ（モジュール/ビルドキャッシュ込み）
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.23 # 使用するGoのバージョンを指定
+          go-version-file: go.mod # go.mod の go ディレクティブに合わせる
 
-      - name: 🛠️ 依存関係をキャッシュ
-        uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: 📦 依存関係をインストール
-        run: go mod tidy
-
-      - name: 🛠️ Testcontainers 用の Docker 設定
-        run: |
-          sudo service docker start
-          docker info
-        shell: bash
+      - name: 📦 依存関係をダウンロード
+        run: go mod download
 
       - name: 🏃 Go テストを実行（並列）
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
-          DOCKER_HOST: "unix:///var/run/docker.sock"
-        run: go test -v ./...
+        run: go test -count=1 -v ./... # 統合テストがキャッシュでスキップされないように

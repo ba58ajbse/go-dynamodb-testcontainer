@@ -14,6 +14,7 @@ import (
 LOCALSTACK_ENDPOINT=http://localhost:4566 DYNAMODB_TABLE=Session go run .
 */
 func main() {
+	fmt.Println("Start.")
 	table := os.Getenv("DYNAMODB_TABLE")
 
 	// DynamoDB クライアントを作成
@@ -49,5 +50,12 @@ func main() {
 		log.Fatalf("Failed to update item: %v", err)
 	}
 
+	// delete
+	err = client.DeleteSession("1234", sessionID)
+	if err != nil {
+		log.Fatalf("Failed to delete item: %v", err)
+	}
+
 	fmt.Println("Updated:", &ret)
+	fmt.Println("Finish.")
 }

@@ -2,20 +2,18 @@ package dynamodb_test
 
 import (
 	"context"
+	mydynamo "godynamodb/dynamodb"
+	"godynamodb/testutil"
 	"os"
 	"reflect"
 	"testing"
 	"time"
-
-	mydynamo "godynamodb/dynamodb"
-	"godynamodb/testutil"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
 
 func TestMain(m *testing.M) {
@@ -264,28 +262,55 @@ func TestDynamoDB_UpdateSession(t *testing.T) {
 	}
 }
 
-func SetupLocalStack(ctx context.Context, t *testing.T) (string, func()) {
-	t.Helper()
-	// testcontainers で LocalStack を起動
-	c, err := localstack.Run(ctx, "localstack/localstack:latest")
-	if err != nil {
-		t.Fatalf("Failed to start LocalStack container: %v", err)
+func TestDynamoDB_DeleteSession(t *testing.T) {
+	session := mydynamo.Session{
+		ID:        "1234",
+		SessionID: "abcde",
+		CreatedAt: "2025-02-01 12:34:56",
+		Expire:    "2025-02-01 13:34:56",
+		TTL:       1738384496,
 	}
 
-	// エンドポイント取得
-	awsEndpoint, err := c.PortEndpoint(ctx, "4566", "http")
-	if err != nil {
-		t.Fatalf("Failed to get LocalStack endpoint: %v", err)
+	dynamo := setupDynamoTest(context.TODO(), t, "Session_DeleteSession")
+	saveTestItem(t, dynamo, session)
+
+	type args struct {
+		ID        string
+		sessionID string
 	}
-
-	t.Logf("Started LocalStack at %s", awsEndpoint)
-
-	// クリーンアップ関数を設定
-	cleanup := func() {
-		_ = c.Terminate(ctx)
+	tests := map[string]struct {
+		args    args
+		wantErr bool
+	}{
+		"case_1": {
+			args: args{
+				ID:        "1234",
+				sessionID: "abcde",
+			},
+			wantErr: false,
+		},
+		"case_2": {
+			args: args{
+				ID:        "",
+				sessionID: "abcde",
+			},
+			wantErr: true,
+		},
+		"case_3": {
+			args: args{
+				ID:        "1234",
+				sessionID: "",
+			},
+			wantErr: true,
+		},
 	}
-
-	return awsEndpoint, cleanup
+	for testName, tt := range tests {
+		t.Run(testName, func(t *testing.T) {
+			if err := dynamo.DeleteSession(tt.args.ID, tt.args.sessionID); (err != nil) != tt.wantErr {
+				t.Errorf("DynamoDB.DeleteSession() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
 func setupDynamoTest(ctx context.Context, t *testing.T, tableName string) *mydynamo.DynamoDB {
