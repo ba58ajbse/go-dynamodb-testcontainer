@@ -9,8 +9,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.18.5
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.71
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.3
-	github.com/floci-io/testcontainers-floci-go v1.2.0
 	github.com/stretchr/testify v1.11.1
+	github.com/testcontainers/testcontainers-go/modules/localstack v0.42.0
 )
 
 require (
@@ -75,6 +75,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
