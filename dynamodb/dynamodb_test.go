@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
 
 func TestMain(m *testing.M) {
@@ -312,30 +311,6 @@ func TestDynamoDB_DeleteSession(t *testing.T) {
 			}
 		})
 	}
-}
-
-func SetupLocalStack(ctx context.Context, t *testing.T) (string, func()) {
-	t.Helper()
-	// testcontainers で LocalStack を起動
-	c, err := localstack.Run(ctx, "localstack/localstack:latest")
-	if err != nil {
-		t.Fatalf("Failed to start LocalStack container: %v", err)
-	}
-
-	// エンドポイント取得
-	awsEndpoint, err := c.PortEndpoint(ctx, "4566", "http")
-	if err != nil {
-		t.Fatalf("Failed to get LocalStack endpoint: %v", err)
-	}
-
-	t.Logf("Started LocalStack at %s", awsEndpoint)
-
-	// クリーンアップ関数を設定
-	cleanup := func() {
-		_ = c.Terminate(ctx)
-	}
-
-	return awsEndpoint, cleanup
 }
 
 func setupDynamoTest(ctx context.Context, t *testing.T, tableName string) *mydynamo.DynamoDB {
